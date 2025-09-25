@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Balancer Stats</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .stats-card { border: 1px solid #ddd; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        .healthy { background-color: #d4edda; }
+        .unhealthy { background-color: #f8d7da; }
+        .refresh-btn { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .server-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Python Load Balancer Stats</h1>
+        <button class="refresh-btn" onclick="loadStats()">Refresh Stats</button>
+        
+        <div class="stats-card">
+            <h3>Overall Status</h3>
+            <p id="overall-status">Loading...</p>
+        </div>
+        
+        <div class="stats-card">
+            <h3>Backend Servers</h3>
+            <div id="server-stats" class="server-list">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('http://localhost:8080/stats');
+                const data = await response.json();
+                
+                // Update overall status
+                const healthyCount = data.healthy_servers.length;
+                const totalCount = data.total_servers;
+                document.getElementById('overall-status').innerHTML = 
+                    `${healthyCount}/${totalCount} servers healthy`;
+                
+                // Update server stats
+                const serverStatsDiv = document.getElementById('server-stats');
+                serverStatsDiv.innerHTML = '';
+                
+                for (const [server, stats] of Object.entries(data.stats)) {
+                    const serverDiv = document.createElement('div');
+                    serverDiv.className = `stats-card ${stats.healthy ? 'healthy' : 'unhealthy'}`;
+                    serverDiv.innerHTML = `
+                        <h4>${server}</h4>
+                        <p>Status: ${stats.healthy ? 'Healthy' : 'Unhealthy'}</p>
+                        <p>Requests: ${stats.requests}</p>
+                        <p>Errors: ${stats.errors}</p>
+                    `;
+                    serverStatsDiv.appendChild(serverDiv);
+                }
+            } catch (error) {
+                document.getElementById('overall-status').innerHTML = 'Error loading stats';
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load stats on page load and refresh every 10 seconds
+        loadStats();
+        setInterval(loadStats, 10000);
+    </script>
+</body>
+</html>
